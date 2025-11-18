@@ -6,7 +6,11 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "jsx": "react-jsx"
+  },
+  "expoRouter": {
+    "typedRoutes": false
   },
   "include": [
     "**/*.ts",
