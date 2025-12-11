@@ -1,5 +1,5 @@
 import { Link } from 'expo-router'
-import { ScrollView, Text, View } from 'react-native'
+import { Image, ScrollView, Text, View } from 'react-native'
 import PrimaryButton from '../../components/PrimaryButton'
 
 export default function Home() {
@@ -12,7 +12,19 @@ export default function Home() {
         padding: 24,
         backgroundColor: '#fafafa',
       }}
-    >
+>
+
+      {/* BIG KLYNN LOGO */}
+        <Image
+          source={require("../../assets/images/klynn-logo.png")}
+          style={{
+            width: 175,   // adjust size here
+            height: 175,
+            resizeMode: "contain",
+            marginBottom: 10,
+          }}
+        />
+
       {/* location */}
       <Text style={{ color: '#777', marginBottom: 8 }}>📍 Kuala Lumpur</Text>
 

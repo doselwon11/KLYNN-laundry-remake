@@ -1,3 +1,4 @@
+import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import {
@@ -12,30 +13,114 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../context/AuthProvider";
 import { supabase } from "../../lib/supabase";
 
+// ------------------------------------------------------------
+// Profile Screen Component
+// ------------------------------------------------------------
 export default function Profile() {
   const { session, user, loading } = useAuth();
 
-  // ---------- LOGIN / SIGNUP ----------
+  // ---------------- AUTH STATE ----------------
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // ---------- PROFILE FIELDS ----------
+  // ---------------- PROFILE FIELDS ----------------
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phoneCountry, setPhoneCountry] = useState("");
+
+  const [phoneCountry, setPhoneCountry] = useState(""); // Composite "Country|+Code"
   const [phoneNumber, setPhoneNumber] = useState("");
 
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [stateProv, setStateProv] = useState("");
-  const [postalCode, setPostalCode] = useState("");
   const [country, setCountry] = useState("");
-
+  const [stateProv, setStateProv] = useState("");
+  const [city, setCity] = useState("");
+  const [street, setStreet] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // ---------- LOAD PROFILE ----------
+  // ---------------- DROPDOWN LISTS ----------------
+  const [countryCodes, setCountryCodes] = useState<any[]>([]);
+  const [countries, setCountries] = useState<any[]>([]);
+  const [states, setStates] = useState<string[]>([]);
+  const [loadingStates, setLoadingStates] = useState(false);
+
+  // ---------------- FETCH COUNTRY & STATES ----------------
+  useEffect(() => {
+    fetchCountryCodes();
+    fetchCountries();
+  }, []);
+
+  async function fetchCountryCodes() {
+    try {
+      const res = await fetch("https://countriesnow.space/api/v0.1/countries/codes");
+      const json = await res.json();
+
+      if (!json?.data || !Array.isArray(json.data)) return;
+
+      const list = json.data
+        .filter((c: any) => c?.name && c?.dial_code)
+        .map((c: any) => ({
+          label: `${c.name} (${c.dial_code})`,
+          value: `${c.name}|${c.dial_code}`,
+        }))
+        .sort((a: any, b: any) => a.label.localeCompare(b.label));
+
+      setCountryCodes(list);
+    } catch (err) {
+      console.log("Dial code fetch error:", err);
+    }
+  }
+
+  async function fetchCountries() {
+    try {
+      const res = await fetch("https://countriesnow.space/api/v0.1/countries/positions");
+      const json = await res.json();
+
+      if (!json?.data || !Array.isArray(json.data)) return;
+
+      const list = json.data
+        .map((c: any) => c.name)
+        .sort((a: string, b: string) => a.localeCompare(b));
+
+      setCountries(list);
+    } catch (err) {
+      console.log("Country fetch error:", err);
+    }
+  }
+
+  // ---------------- FETCH STATES WHEN COUNTRY SELECTED ----------------
+  useEffect(() => {
+    if (country) fetchStates(country);
+  }, [country]);
+
+  async function fetchStates(selectedCountry: string) {
+    setLoadingStates(true);
+    try {
+      const res = await fetch("https://countriesnow.space/api/v0.1/countries/states", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: selectedCountry }),
+      });
+
+      const json = await res.json();
+
+      if (json?.data?.states) {
+        const list = json.data.states
+          .map((s: any) => s.name)
+          .sort((a: string, b: string) => a.localeCompare(b));
+
+        setStates(list);
+      } else {
+        setStates([]);
+      }
+    } catch (err) {
+      console.log("State fetch error:", err);
+    }
+    setLoadingStates(false);
+  }
+
+  // ---------------- LOAD PROFILE ----------------
   useEffect(() => {
     if (user?.id) loadProfile();
   }, [user]);
@@ -50,41 +135,56 @@ export default function Profile() {
       .single();
 
     if (error) {
-      console.log("Profile load error:", error.message);
+      console.log("Profile load error:", error);
       return;
     }
 
     setFirstName(data.first_name ?? "");
     setLastName(data.last_name ?? "");
-    setPhoneCountry(data.phone_country ?? "");
+
+    if (data.phone_country) {
+      setPhoneCountry(`${data.country}|${data.phone_country}`);
+    }
+
     setPhoneNumber(data.phone_number ?? "");
 
+    setCountry(data.country ?? "");
     setStreet(data.street ?? "");
     setCity(data.city ?? "");
     setStateProv(data.state ?? "");
-    setPostalCode(data.postal_code ?? data.zip ?? "");
-    setCountry(data.country ?? "");
+    setPostalCode(data.postal_code ?? "");
+
+    // Load correct state list for their country
+    if (data.country) fetchStates(data.country);
   }
 
-  // ---------- UPDATE PROFILE ----------
+  // ---------------- SAVE PROFILE ----------------
   async function updateProfile() {
     if (!user?.id) return;
 
     setSaving(true);
+
+    let realCountry = country || null;
+    let realDialCode = null;
+
+    if (phoneCountry.includes("|")) {
+      const parts = phoneCountry.split("|");
+      realCountry = parts[0].trim();
+      realDialCode = parts[1].trim();
+    }
 
     const { error } = await supabase
       .from("profiles")
       .update({
         first_name: firstName || null,
         last_name: lastName || null,
-        phone_country: phoneCountry || null,
+        country: realCountry,
+        phone_country: realDialCode,
         phone_number: phoneNumber || null,
         street: street || null,
         city: city || null,
         state: stateProv || null,
         postal_code: postalCode || null,
-        zip: postalCode || null,
-        country: country || null,
       })
       .eq("id", user.id);
 
@@ -95,12 +195,10 @@ export default function Profile() {
     }
 
     Alert.alert("Success", "Profile updated.");
-
-    // keep button greyed for 1.5 seconds
-    setTimeout(() => setSaving(false), 1500);
+    setTimeout(() => setSaving(false), 1200);
   }
 
-  // ---------- UPDATE PASSWORD ----------
+  // ---------------- UPDATE PASSWORD ----------------
   async function updatePassword() {
     if (!password) return Alert.alert("Error", "Enter a new password.");
 
@@ -111,11 +209,12 @@ export default function Profile() {
     Alert.alert("Password Updated", "Your new password is saved.");
   }
 
+  // ---------------- SIGN OUT ----------------
   async function signOut() {
     await supabase.auth.signOut();
   }
 
-  // ---------- SIGN IN / SIGN UP ----------
+  // ---------------- SIGN IN / SIGN UP ----------------
   async function handleAuth() {
     if (!email || !password)
       return Alert.alert("Missing fields", "Please fill all fields.");
@@ -132,38 +231,10 @@ export default function Profile() {
 
         Alert.alert("Welcome!");
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo:
-              typeof window !== "undefined"
-                ? window.location.origin
-                : undefined,
-          },
-        });
-
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
 
-        // Create profile metadata after sign-up
-        if (data?.user) {
-          await supabase
-            .from("profiles")
-            .update({
-              first_name: firstName,
-              last_name: lastName,
-              phone_country: phoneCountry,
-              phone_number: phoneNumber,
-              street,
-              city,
-              state: stateProv,
-              postal_code: postalCode,
-              country,
-            })
-            .eq("id", data.user.id);
-        }
-
-        Alert.alert("Account created", "Please verify your email.");
+        Alert.alert("Account created", "You may now sign in.");
         setMode("signin");
       }
     } catch (err: any) {
@@ -173,7 +244,7 @@ export default function Profile() {
     }
   }
 
-  // ---------- LOADING STATE ----------
+  // ---------------- LOADING SCREEN ----------------
   if (loading) {
     return (
       <View
@@ -189,9 +260,9 @@ export default function Profile() {
     );
   }
 
-  // -------------------------------------------------------
-  //        PROFILE SCREEN (Logged In)
-  // -------------------------------------------------------
+  // =====================================================================
+  //                          LOGGED IN PROFILE UI
+  // =====================================================================
   if (session && user) {
     return (
       <ScrollView
@@ -200,7 +271,7 @@ export default function Profile() {
       >
         <LinearGradient
           colors={["#7c3aed", "#4f46e5"]}
-          style={{ width: "100%", padding: 24, borderRadius: 16 }}
+          style={{ width: "60%", padding: 16, borderRadius: 16 }}
         >
           <Text
             style={{
@@ -215,15 +286,14 @@ export default function Profile() {
         </LinearGradient>
 
         <View style={{ width: "100%", maxWidth: 400, marginTop: 20, gap: 12 }}>
-          {/* FIRST NAME */}
+          {/* Names */}
           <Label text="First Name" />
           <TextInput value={firstName} onChangeText={setFirstName} style={input} />
 
-          {/* LAST NAME */}
           <Label text="Last Name" />
           <TextInput value={lastName} onChangeText={setLastName} style={input} />
 
-          {/* EMAIL */}
+          {/* Email */}
           <Label text="Email" />
           <TextInput
             value={user.email}
@@ -231,16 +301,21 @@ export default function Profile() {
             style={{ ...input, backgroundColor: "#e5e7eb", color: "#555" }}
           />
 
-          {/* PHONE COUNTRY */}
-          <Label text="Phone Country Code" />
-          <TextInput
-            value={phoneCountry}
-            onChangeText={setPhoneCountry}
-            placeholder="+1, +44, +82 ..."
-            style={input}
-          />
+          {/* Country Code */}
+          <Label text="Country Code" />
+          <View style={pickerWrap}>
+            <Picker
+              selectedValue={phoneCountry}
+              onValueChange={(v) => setPhoneCountry(v)}
+            >
+              <Picker.Item label="Select Country Code" value="" />
+              {countryCodes.map((c) => (
+                <Picker.Item key={c.value} label={c.label} value={c.value} />
+              ))}
+            </Picker>
+          </View>
 
-          {/* PHONE NUMBER */}
+          {/* Phone number */}
           <Label text="Phone Number" />
           <TextInput
             value={phoneNumber}
@@ -248,31 +323,54 @@ export default function Profile() {
             style={input}
           />
 
-          {/* ADDRESS FIELDS */}
-          <Label text="Street" />
-          <TextInput value={street} onChangeText={setStreet} style={input} />
+          {/* Country */}
+          <Label text="Country" />
+          <View style={pickerWrap}>
+            <Picker selectedValue={country} onValueChange={setCountry}>
+              <Picker.Item label="Select Country" value="" />
+              {countries.map((ct) => (
+                <Picker.Item key={ct} label={ct} value={ct} />
+              ))}
+            </Picker>
+          </View>
 
+          {/* State — dynamic */}
+          <Label text="State / Province" />
+          <View style={pickerWrap}>
+            <Picker
+              enabled={!loadingStates && states.length > 0}
+              selectedValue={stateProv}
+              onValueChange={setStateProv}
+            >
+              <Picker.Item
+                label={
+                  loadingStates
+                    ? "Loading states..."
+                    : states.length > 0
+                    ? "Select State / Province"
+                    : "No states available"
+                }
+                value=""
+              />
+              {states.map((s) => (
+                <Picker.Item key={s} label={s} value={s} />
+              ))}
+            </Picker>
+          </View>
+
+          {/* City */}
           <Label text="City" />
           <TextInput value={city} onChangeText={setCity} style={input} />
 
-          <Label text="State / Province" />
-          <TextInput
-            value={stateProv}
-            onChangeText={setStateProv}
-            style={input}
-          />
+          {/* Street */}
+          <Label text="Street" />
+          <TextInput value={street} onChangeText={setStreet} style={input} />
 
+          {/* Postal Code */}
           <Label text="Postal Code" />
-          <TextInput
-            value={postalCode}
-            onChangeText={setPostalCode}
-            style={input}
-          />
+          <TextInput value={postalCode} onChangeText={setPostalCode} style={input} />
 
-          <Label text="Country" />
-          <TextInput value={country} onChangeText={setCountry} style={input} />
-
-          {/* SAVE BUTTON */}
+          {/* Save button */}
           <PrimaryButton
             title={saving ? "Saved ✓" : "Save Changes"}
             onPress={updateProfile}
@@ -286,7 +384,7 @@ export default function Profile() {
             }}
           />
 
-          {/* CHANGE PASSWORD */}
+          {/* Password */}
           <Label text="Change Password" />
           <TextInput
             placeholder="New Password"
@@ -295,7 +393,6 @@ export default function Profile() {
             onChangeText={setPassword}
             style={input}
           />
-
           <PrimaryButton
             title="Update Password"
             onPress={updatePassword}
@@ -307,7 +404,7 @@ export default function Profile() {
             }}
           />
 
-          {/* SIGN OUT */}
+          {/* Sign out */}
           <PrimaryButton
             title="Sign Out"
             onPress={signOut}
@@ -324,9 +421,9 @@ export default function Profile() {
     );
   }
 
-  // -------------------------------------------------------
-  //     SIGN IN / SIGN UP SCREEN
-  // -------------------------------------------------------
+  // =====================================================================
+  //                          SIGN-IN / SIGN-UP UI
+  // =====================================================================
   return (
     <View
       style={{
@@ -361,24 +458,67 @@ export default function Profile() {
               onChangeText={setFirstName}
               style={input}
             />
+
             <TextInput
               placeholder="Last Name"
               value={lastName}
               onChangeText={setLastName}
               style={input}
             />
-            <TextInput
-              placeholder="Phone Country Code"
-              value={phoneCountry}
-              onChangeText={setPhoneCountry}
-              style={input}
-            />
+
+            {/* Country Code Dropdown */}
+            <View style={pickerWrap}>
+              <Picker
+                selectedValue={phoneCountry}
+                onValueChange={setPhoneCountry}
+              >
+                <Picker.Item label="Country Code" value="" />
+                {countryCodes.map((c) => (
+                  <Picker.Item key={c.value} label={c.label} value={c.value} />
+                ))}
+              </Picker>
+            </View>
+
             <TextInput
               placeholder="Phone Number"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               style={input}
             />
+
+            {/* Country Dropdown */}
+            <View style={pickerWrap}>
+              <Picker selectedValue={country} onValueChange={setCountry}>
+                <Picker.Item label="Country" value="" />
+                {countries.map((ct) => (
+                  <Picker.Item key={ct} label={ct} value={ct} />
+                ))}
+              </Picker>
+            </View>
+
+            {/* Dynamic State */}
+            <View style={pickerWrap}>
+              <Picker
+                enabled={!loadingStates && states.length > 0}
+                selectedValue={stateProv}
+                onValueChange={setStateProv}
+              >
+                <Picker.Item
+                  label={
+                    loadingStates
+                      ? "Loading states..."
+                      : states.length > 0
+                      ? "Select State / Province"
+                      : "No states available"
+                  }
+                  value=""
+                />
+                {states.map((s) => (
+                  <Picker.Item key={s} label={s} value={s} />
+                ))}
+              </Picker>
+            </View>
+
             <TextInput
               placeholder="Street"
               value={street}
@@ -392,21 +532,9 @@ export default function Profile() {
               style={input}
             />
             <TextInput
-              placeholder="State / Province"
-              value={stateProv}
-              onChangeText={setStateProv}
-              style={input}
-            />
-            <TextInput
               placeholder="Postal Code"
               value={postalCode}
               onChangeText={setPostalCode}
-              style={input}
-            />
-            <TextInput
-              placeholder="Country"
-              value={country}
-              onChangeText={setCountry}
               style={input}
             />
           </>
@@ -430,11 +558,7 @@ export default function Profile() {
 
         <PrimaryButton
           title={
-            authLoading
-              ? "Please wait…"
-              : mode === "signin"
-              ? "Sign In"
-              : "Sign Up"
+            authLoading ? "Please wait…" : mode === "signin" ? "Sign In" : "Sign Up"
           }
           onPress={handleAuth}
           style={{
@@ -461,6 +585,9 @@ export default function Profile() {
   );
 }
 
+// ------------------------------------------------------------
+// Helper Components
+// ------------------------------------------------------------
 function Label({ text }: { text: string }) {
   return <Text style={{ fontWeight: "600", marginTop: 4 }}>{text}</Text>;
 }
@@ -470,5 +597,13 @@ const input = {
   borderColor: "#ddd",
   borderRadius: 10,
   padding: 12,
+  backgroundColor: "white",
+};
+
+const pickerWrap = {
+  borderWidth: 1,
+  borderColor: "#ddd",
+  borderRadius: 10,
+  overflow: "hidden" as const,
   backgroundColor: "white",
 };
