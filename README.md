@@ -101,7 +101,7 @@ You may run the app using:
 3. Navigate to Order
     * Select package
     * Select pickup type and service type
-    * Choose pickup address option
+    * Choose the pickup address option
 4. Place an order
 5. Navigate to Track to view order status
 6. Log out and sign back in to confirm data persistence 
@@ -114,11 +114,5 @@ You may run the app using:
 * No service-role or admin keys are exposed in the client app
 
 ### 📄 License
+
 This project is intended for academic and demonstration purposes only.
-=======
-# KLYNN Door-to-Door Laundry 🚚🧺
-
-## 📌 Project Overview
-
-**KLYNN Door-to-Door Laundry** is a React Native + Expo project that simulates a real-world laundry pickup and delivery service. Users can place laundry orders, track their status, and interact with a Supabase-backed backend for authentication and data storage.
->>>>>>> 27779014a5e03fdfeda0b98057a4998e5e2d5070
