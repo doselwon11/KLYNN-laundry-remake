@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🧺 KLYNN Door-to-Door Laundry
 ## Customer App (React Native + Expo)
 
