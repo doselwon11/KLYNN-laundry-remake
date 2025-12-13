@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🧺 KLYNN Door-to-Door Laundry
 ## Customer App (React Native + Expo)
 
@@ -115,3 +116,10 @@ You may run the app using:
 
 ### 📄 License
 This project is intended for academic and demonstration purposes only.
+=======
+# KLYNN Door-to-Door Laundry 🚚🧺
+
+## 📌 Project Overview
+
+**KLYNN Door-to-Door Laundry** is a React Native + Expo project that simulates a real-world laundry pickup and delivery service. Users can place laundry orders, track their status, and interact with a Supabase-backed backend for authentication and data storage.
+>>>>>>> 27779014a5e03fdfeda0b98057a4998e5e2d5070
