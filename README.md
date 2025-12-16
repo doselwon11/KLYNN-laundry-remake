@@ -55,7 +55,7 @@ project-root/
 ```
 
 ## 🧑‍🏫 Instructions for Local Testing
-### 1️⃣ Prerequisites
+### 1. Prerequisites
 
 Please ensure the following are installed:
 * Node.js (v18 or newer recommended)
@@ -64,12 +64,12 @@ Please ensure the following are installed:
 
 `npm install -g expo-cli`
 
-### 2️⃣ Install Dependencies
+### 2️. Install Dependencies
 
 From the project root:
 `npm install` or `yarn install`
 
-### 3️⃣ Environment Variables (Supabase)
+### 3️. Environment Variables (Supabase)
 
 Create a `.env` file in the project root with the following variables:
 
@@ -81,8 +81,15 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 Supabase anon keys are public by design and are safe to use in client applications.
 All sensitive access is protected using Row Level Security (RLS).
 
-### 4️⃣ Run the App Locally
+### 4. Create an Expo app
+
+`npx create-expo-app@latest <app-name>`, e.g., `npx create-expo-app@latest klynn`
+
+**Note**: Creating a new Expo app will create a new folder in your root, e.g., "klynn". You may have to move all current files and folders into this new folder for the full web app to render accurately.
+
+### 5. Run the App Locally
 `npx expo start`
+
 You may run the app using:
 * 🌐 Web browser
 * 📱 Android Emulator
