@@ -64,12 +64,18 @@ Please ensure the following are installed:
 
 `npm install -g expo-cli`
 
-### 2️. Install Dependencies
+### 2. Create an Expo app
+
+`npx create-expo-app@latest <app-name>`, e.g., `npx create-expo-app@latest klynn`
+
+**Note**: Creating a new Expo app will create a new folder in your root, e.g., "klynn". You may have to move all current files and folders into this new folder for the full web app to render accurately.
+
+### 3. Install Dependencies
 
 From the project root:
 `npm install` or `yarn install`
 
-### 3️. Environment Variables (Supabase)
+### 4. Environment Variables (Supabase)
 
 Create a `.env` file in the project root with the following variables:
 
@@ -80,12 +86,6 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 ✅ Important Note for Evaluation:
 Supabase anon keys are public by design and are safe to use in client applications.
 All sensitive access is protected using Row Level Security (RLS).
-
-### 4. Create an Expo app
-
-`npx create-expo-app@latest <app-name>`, e.g., `npx create-expo-app@latest klynn`
-
-**Note**: Creating a new Expo app will create a new folder in your root, e.g., "klynn". You may have to move all current files and folders into this new folder for the full web app to render accurately.
 
 ### 5. Run the App Locally
 `npx expo start`
