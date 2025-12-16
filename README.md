@@ -68,7 +68,7 @@ Please ensure the following are installed:
 
 `npx create-expo-app@latest <app-name>`, e.g., `npx create-expo-app@latest klynn`
 
-**Note**: Creating a new Expo app will create a new folder in your root, e.g., "klynn". You may have to move all current files and folders into this new folder for the full web app to render accurately.
+**Note**: Creating a new Expo app will create a new folder in your root, e.g., "klynn". You should move all current files and folders into this new folder (replace all folders that Expo generates) for the full web app to render accurately.
 
 ### 3. Install Dependencies
 
