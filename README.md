@@ -77,7 +77,7 @@ From the project root:
 
 ### 4. Environment Variables (Supabase)
 
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file in your Expo app directory with the following variables:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=https://aerbkrsskxbsvjattofq.supabase.co
